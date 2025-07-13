@@ -74,7 +74,10 @@ export const Header = ({ currentView, onNavigate, breadcrumbItems = [] }) => {
                 trigger={
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src="" alt={user.fullName || user.username} />
+                      <AvatarImage 
+                        src={user.profileImage || user.avatar} 
+                        alt={user.fullName || user.username} 
+                      />
                       <AvatarFallback>{(user.fullName || user.username || 'U').charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                   </Button>

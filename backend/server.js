@@ -10,7 +10,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'processflow-secret-key-2024';
 
 // Middleware
 app.use(cors({
-    origin: 'http://localhost:5173', // React frontend URL
+    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176'], // React frontend URLs
     credentials: true
 }));
 app.use(express.json());

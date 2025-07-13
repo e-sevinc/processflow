@@ -1,8 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { DndProvider } from 'react-dnd'
+import { HTML5Backend } from 'react-dnd-html5-backend'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Select } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { EnhancedDropdownMenu } from '@/components/ui/dropdown-menu'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,10 +16,69 @@ import {
   Save, X, RotateCcw
 } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useErrorHandler } from '@/hooks/useErrorHandler'
+import { LoadingSpinner, OverlayLoading } from '@/components/ui/loading-states'
+import { ErrorDisplay } from '@/components/ui/error-display'
+import { DraggableElement } from './DraggableElement'
+import { ElementPalette } from './ElementPalette'
 import apiService from '@/services/api'
+
+// Yeni hook: Canvas yönetimi için
+const useCanvas = (canvasRef) => {
+  const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const [isCanvasDragging, setIsCanvasDragging] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+
+  const handleWheel = useCallback((e) => {
+    e.preventDefault()
+    const delta = e.deltaY > 0 ? 0.9 : 1.1
+    setZoom(prev => Math.min(Math.max(prev * delta, 0.1), 3))
+  }, [])
+
+  const handleMouseDown = useCallback((e) => {
+    if (e.button === 1 || (e.button === 0 && e.ctrlKey)) {
+      setIsCanvasDragging(true)
+      setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y })
+    }
+  }, [pan])
+
+  const handleMouseMove = useCallback((e) => {
+    if (isCanvasDragging) {
+      setPan({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y
+      })
+    }
+  }, [isCanvasDragging, dragStart])
+
+  const handleMouseUp = useCallback(() => {
+    setIsCanvasDragging(false)
+  }, [])
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (canvas) {
+      canvas.addEventListener('wheel', handleWheel, { passive: false })
+      canvas.addEventListener('mousedown', handleMouseDown)
+      canvas.addEventListener('mousemove', handleMouseMove)
+      canvas.addEventListener('mouseup', handleMouseUp)
+      
+      return () => {
+        canvas.removeEventListener('wheel', handleWheel)
+        canvas.removeEventListener('mousedown', handleMouseDown)
+        canvas.removeEventListener('mousemove', handleMouseMove)
+        canvas.removeEventListener('mouseup', handleMouseUp)
+      }
+    }
+  }, [canvasRef, handleWheel, handleMouseDown, handleMouseMove, handleMouseUp])
+
+  return { zoom, pan, isCanvasDragging }
+}
 
 export const ProcessEditor = ({ process, onBack, onNavigate }) => {
   const { t } = useLanguage()
+  const { handleError, errors, clearErrors, clearError } = useErrorHandler()
   const [elements, setElements] = useState([])
   const [connections, setConnections] = useState([])
   const [selectedElement, setSelectedElement] = useState(null)
@@ -30,9 +92,10 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
   const [connectionStart, setConnectionStart] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [isDragging, setIsDragging] = useState(false)
+  const [elementDragging, setElementDragging] = useState(false)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const canvasRef = useRef(null)
+  const { zoom, pan, isCanvasDragging } = useCanvas(canvasRef)
   
   // Süreç elemanlarını yükle
   useEffect(() => {
@@ -69,7 +132,7 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
         setConnections(mockConnections)
       }
     } catch (error) {
-      console.error('Süreç elemanları yüklenirken hata:', error)
+      handleError(error, 'Süreç Yükleme')
       // Mock data for demo
       setElements([
         { id: 1, type: 'start', name: 'Başla', x: 100, y: 100, description: 'Süreç başlangıcı' },
@@ -113,7 +176,7 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
         setNewElement({ type: 'step', name: '', description: '' })
         setShowElementDialog(false)
       } catch (error) {
-        console.error('Element eklenirken hata:', error)
+        handleError(error, 'Element Ekleme')
         // Mock ekleme
         const element = {
           id: Date.now(),
@@ -144,7 +207,7 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
         setEditingElement(null)
         setShowElementDialog(false)
       } catch (error) {
-        console.error('Element güncellenirken hata:', error)
+        handleError(error, 'Element Güncelleme')
         // Mock güncelleme
         setElements(elements.map(el => 
           el.id === editingElement.id ? editingElement : el
@@ -162,7 +225,7 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
       setConnections(connections.filter(conn => conn.from !== elementId && conn.to !== elementId))
       setSelectedElement(null)
     } catch (error) {
-      console.error('Element silinirken hata:', error)
+      handleError(error, 'Element Silme')
       // Mock silme
       setElements(elements.filter(el => el.id !== elementId))
       setConnections(connections.filter(conn => conn.from !== elementId && conn.to !== elementId))
@@ -270,44 +333,16 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
       // Elementler ve bağlantılar zaten API üzerinden kaydediliyor
       console.log('Süreç kaydedildi')
     } catch (error) {
-      console.error('Süreç kaydedilirken hata:', error)
+      handleError(error, 'Süreç Kaydetme')
     } finally {
       setSaving(false)
     }
   }
   
-  const getElementIcon = (type) => {
-    switch (type) {
-      case 'start': return <Play className="h-4 w-4" />
-      case 'end': return <Square className="h-4 w-4" />
-      case 'decision': return <Diamond className="h-4 w-4" />
-      default: return <FileText className="h-4 w-4" />
-    }
-  }
-  
-  const getElementColor = (type) => {
-    switch (type) {
-      case 'start': return 'fill-green-100 stroke-green-300'
-      case 'end': return 'fill-red-100 stroke-red-300'
-      case 'decision': return 'fill-yellow-100 stroke-yellow-300'
-      default: return 'fill-blue-100 stroke-blue-300'
-    }
-  }
-  
-  const getElementShape = (type) => {
-    switch (type) {
-      case 'start':
-      case 'end':
-        return 'circle'
-      case 'decision':
-        return 'polygon'
-      default:
-        return 'rect'
-    }
-  }
+  // Element utility functions moved to utils/elementUtils.js
   
   const handleMouseDown = (e, element) => {
-    setIsDragging(true)
+    setElementDragging(true)
     setSelectedElement(element)
     const rect = canvasRef.current.getBoundingClientRect()
     setDragOffset({
@@ -317,7 +352,7 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
   }
   
   const handleMouseMove = (e) => {
-    if (isDragging && selectedElement) {
+    if (elementDragging && selectedElement) {
       const rect = canvasRef.current.getBoundingClientRect()
       const newX = e.clientX - rect.left - dragOffset.x
       const newY = e.clientY - rect.top - dragOffset.y
@@ -341,7 +376,7 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
   }
   
   const handleMouseUp = () => {
-    setIsDragging(false)
+    setElementDragging(false)
   }
   
   const openElementDialog = (element = null) => {
@@ -356,57 +391,34 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
   }
   
   return (
-    <div className="h-screen flex flex-col">
-      {/* Navigation Bar */}
-      <div className="bg-white border-b px-4 py-3">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onNavigate('home')}
-              className="flex items-center space-x-2"
-            >
-              <Home className="h-4 w-4" />
-              <span>Ana Sayfa</span>
-            </Button>
-            <div className="text-sm text-muted-foreground">/</div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onBack}
-              className="flex items-center space-x-2"
-            >
-              <Building2 className="h-4 w-4" />
-              <span>Workspace</span>
-            </Button>
-            <div className="text-sm text-muted-foreground">/</div>
-            <span className="font-medium">{process.name}</span>
-            <div className="text-sm text-muted-foreground">/</div>
-            <span className="font-medium">Editör</span>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onNavigate('templates')}
-            >
-              Şablonlar
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onNavigate('analytics')}
-            >
-              Analitik
-            </Button>
-          </div>
+    <DndProvider backend={HTML5Backend}>
+      <div className="h-screen flex flex-col overflow-hidden">
+        {/* Loading Overlay */}
+        {loading && <OverlayLoading message="Süreç yükleniyor..." />}
+        
+        {/* Error Display */}
+        <ErrorDisplay 
+          errors={errors}
+          onClearAll={clearErrors}
+          onClearError={clearError}
+          onRetry={loadProcessElements}
+        />
+        
+        {/* Mobile Floating Action Button */}
+        <div className="md:hidden fixed bottom-4 right-4 z-40">
+          <Button
+            size="lg"
+            className="rounded-full w-14 h-14 shadow-lg"
+            onClick={() => openElementDialog()}
+          >
+            <Plus className="h-6 w-6" />
+          </Button>
         </div>
-      </div>
+        
+
       
       {/* Editor Header */}
-      <div className="border-b bg-white p-4">
+      <div className="border-b bg-white p-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Button variant="ghost" onClick={onBack}>
@@ -482,7 +494,12 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
       </div>
       
       {/* Main Editor Area */}
-      <div className="flex-1 flex">
+      <div className="flex-1 flex min-h-0">
+        {/* Element Palette - Hidden on mobile */}
+        <div className="hidden md:block">
+          <ElementPalette />
+        </div>
+        
         {/* Canvas */}
         <div className="flex-1 bg-gray-50 relative overflow-hidden">
           {loading ? (
@@ -558,12 +575,12 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
               {/* Elements */}
               {elements.map((element) => (
                 <g key={element.id}>
-                  {getElementShape(element.type) === 'circle' ? (
+                  {element.type === 'start' || element.type === 'end' ? (
                     <circle
                       cx={element.x + 30}
                       cy={element.y + 30}
                       r="30"
-                      className={`${getElementColor(element.type)} cursor-pointer hover:shadow-md transition-shadow ${
+                      className={`fill-green-100 stroke-green-300 cursor-pointer hover:shadow-md transition-shadow ${
                         connectionStart?.id === element.id ? 'stroke-blue-500 stroke-2' : ''
                       }`}
                       onClick={() => {
@@ -584,10 +601,10 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
                         }
                       }}
                     />
-                  ) : getElementShape(element.type) === 'polygon' ? (
+                  ) : element.type === 'decision' ? (
                     <polygon
                       points={`${element.x + 30},${element.y} ${element.x + 60},${element.y + 30} ${element.x + 30},${element.y + 60} ${element.x},${element.y + 30}`}
-                      className={`${getElementColor(element.type)} cursor-pointer hover:shadow-md transition-shadow ${
+                      className={`fill-yellow-100 stroke-yellow-300 cursor-pointer hover:shadow-md transition-shadow ${
                         connectionStart?.id === element.id ? 'stroke-blue-500 stroke-2' : ''
                       }`}
                       onClick={() => {
@@ -615,7 +632,7 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
                       width="120"
                       height="60"
                       rx="8"
-                      className={`${getElementColor(element.type)} cursor-pointer hover:shadow-md transition-shadow ${
+                      className={`fill-blue-100 stroke-blue-300 cursor-pointer hover:shadow-md transition-shadow ${
                         connectionStart?.id === element.id ? 'stroke-blue-500 stroke-2' : ''
                       }`}
                       onClick={() => {
@@ -665,8 +682,8 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
           )}
         </div>
         
-                 {/* Properties Panel */}
-         <div className="w-80 bg-white border-l p-4 overflow-y-auto">
+                 {/* Properties Panel - Hidden on mobile */}
+         <div className="hidden lg:block w-80 lg:w-72 xl:w-80 bg-white border-l p-4 overflow-y-auto flex-shrink-0">
            <h3 className="font-semibold mb-4">Özellikler</h3>
            
            {connectionMode && (
@@ -785,17 +802,16 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
           <div className="grid gap-4 py-4">
             <div>
               <Label htmlFor="elementType">Tip</Label>
-              <select
+              <Select
                 id="elementType"
                 value={newElement.type}
                 onChange={(e) => setNewElement({...newElement, type: e.target.value})}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <option value="start">Başlangıç</option>
                 <option value="step">Adım</option>
                 <option value="decision">Karar</option>
                 <option value="end">Bitiş</option>
-              </select>
+              </Select>
             </div>
             <div>
               <Label htmlFor="elementName">Ad</Label>
@@ -834,31 +850,29 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
           <div className="grid gap-4 py-4">
             <div>
               <Label htmlFor="connectionFrom">Kaynak Element</Label>
-              <select
+              <Select
                 id="connectionFrom"
                 value={newConnection.from}
                 onChange={(e) => setNewConnection({...newConnection, from: e.target.value})}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <option value="">Kaynak seçin</option>
                 {elements.map(element => (
                   <option key={element.id} value={element.id}>{element.name}</option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
               <Label htmlFor="connectionTo">Hedef Element</Label>
-              <select
+              <Select
                 id="connectionTo"
                 value={newConnection.to}
                 onChange={(e) => setNewConnection({...newConnection, to: e.target.value})}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <option value="">Hedef seçin</option>
                 {elements.map(element => (
                   <option key={element.id} value={element.id}>{element.name}</option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
               <Label htmlFor="connectionLabel">Etiket (Opsiyonel)</Label>
@@ -881,5 +895,6 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
         </DialogContent>
       </Dialog>
     </div>
+    </DndProvider>
   )
 } 

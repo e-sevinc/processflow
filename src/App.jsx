@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
+import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
+import { ProcessProvider } from '@/contexts/ProcessContext'
 import { Header } from '@/components/Header'
 import { WorkspaceManagement } from '@/components/workspace/WorkspaceManagement'
 import { ProcessManagement } from '@/components/process/ProcessManagement'
@@ -216,25 +218,51 @@ function App() {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <AuthWrapper>
-          <div className="min-h-screen bg-gray-50">
-            <Header 
-              currentView={currentView}
-              onNavigate={handleNavigate}
-              breadcrumbItems={getBreadcrumbItems()}
+        <ProcessProvider>
+          <AuthWrapper>
+            <div className="min-h-screen bg-gray-50">
+              <Header 
+                currentView={currentView}
+                onNavigate={handleNavigate}
+                breadcrumbItems={getBreadcrumbItems()}
+              />
+              <MainContent 
+                currentView={currentView}
+                selectedWorkspace={selectedWorkspace}
+                selectedProcess={selectedProcess}
+                onSelectWorkspace={handleSelectWorkspace}
+                onSelectProcess={handleSelectProcess}
+                onBackToWorkspaces={handleBackToWorkspaces}
+                onBackToProcesses={handleBackToProcesses}
+                onNavigate={handleNavigate}
+              />
+            </div>
+            <Toaster 
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: '#363636',
+                  color: '#fff',
+                },
+                success: {
+                  duration: 3000,
+                  iconTheme: {
+                    primary: '#10B981',
+                    secondary: '#fff',
+                  },
+                },
+                error: {
+                  duration: 5000,
+                  iconTheme: {
+                    primary: '#EF4444',
+                    secondary: '#fff',
+                  },
+                },
+              }}
             />
-            <MainContent 
-              currentView={currentView}
-              selectedWorkspace={selectedWorkspace}
-              selectedProcess={selectedProcess}
-              onSelectWorkspace={handleSelectWorkspace}
-              onSelectProcess={handleSelectProcess}
-              onBackToWorkspaces={handleBackToWorkspaces}
-              onBackToProcesses={handleBackToProcesses}
-              onNavigate={handleNavigate}
-            />
-          </div>
-        </AuthWrapper>
+          </AuthWrapper>
+        </ProcessProvider>
       </AuthProvider>
     </LanguageProvider>
   )

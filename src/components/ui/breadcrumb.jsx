@@ -12,7 +12,7 @@ export const Breadcrumb = ({ items, onNavigate }) => {
       >
         <Home className="h-3 w-3" />
       </Button>
-      
+
       {items.map((item, index) => (
         <div key={index} className="flex items-center space-x-1">
           <ChevronRight className="h-3 w-3" />

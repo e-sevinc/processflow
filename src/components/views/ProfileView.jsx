@@ -126,7 +126,10 @@ export const ProfileView = ({ onNavigate }) => {
               <div className="flex items-start gap-4">
                 <div className="relative">
                   <Avatar className="h-20 w-20">
-                    <AvatarImage src="" alt={profileData.fullName} />
+                    <AvatarImage 
+                      src={profileData.profileImage || profileData.avatar} 
+                      alt={profileData.fullName} 
+                    />
                     <AvatarFallback className="text-lg">
                       {profileData.fullName.charAt(0).toUpperCase()}
                     </AvatarFallback>

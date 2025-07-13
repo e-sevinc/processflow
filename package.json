@@ -15,7 +15,18 @@
     "lucide-react": "^0.263.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "tailwind-merge": "^1.14.0"
+    "tailwind-merge": "^1.14.0",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
+    "react-beautiful-dnd": "^13.1.1",
+    "react-router-dom": "^6.8.1",
+    "socket.io-client": "^4.7.2",
+    "jspdf": "^2.5.1",
+    "html2canvas": "^1.4.1",
+    "recharts": "^2.8.0",
+    "date-fns": "^2.30.0",
+    "react-hot-toast": "^2.4.1",
+    "zustand": "^4.4.1"
   },
   "devDependencies": {
     "@types/react": "^18.2.15",
