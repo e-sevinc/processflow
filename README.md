@@ -219,9 +219,7 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICE
 
 ## 👥 Ekip
 
-- **Geliştirici**: [Adınız]
-- **Email**: [email@example.com]
-- **GitHub**: [@kullaniciadi]
+- **Geliştirici**: Ersan 
 
 ## 🙏 Teşekkürler
 
@@ -235,7 +233,6 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICE
 
 Proje hakkında sorularınız için:
 - GitHub Issues: [Proje Issues Sayfası]
-- Email: [email@example.com]
 
 ---
 
