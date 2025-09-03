@@ -90,6 +90,10 @@ const EnhancedDropdownMenu = ({ children, trigger, content, align = "center" }) 
     }
   }, [])
 
+  const handleItemClick = () => {
+    setIsOpen(false)
+  }
+
   return (
     <div ref={dropdownRef} className="relative">
       <div onClick={() => setIsOpen(!isOpen)}>
@@ -98,13 +102,15 @@ const EnhancedDropdownMenu = ({ children, trigger, content, align = "center" }) 
       {isOpen && (
         <div
           className={cn(
-            "absolute z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md",
+            "absolute z-50 min-w-[8rem] overflow-hidden rounded-md border bg-white p-1 text-gray-900 shadow-lg",
+            "top-full mt-1",
             align === "end" && "right-0",
-            align === "start" && "left-0"
+            align === "start" && "left-0",
+            align === "center" && "left-1/2 transform -translate-x-1/2"
           )}
         >
           {React.cloneElement(content, {
-            onItemClick: () => setIsOpen(false)
+            onItemClick: handleItemClick
           })}
         </div>
       )}

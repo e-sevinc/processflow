@@ -496,7 +496,7 @@ Authorization: Bearer <jwt-token>
 - Güvenli karşılaştırma
 
 ### CORS
-- Origin: http://localhost:5173 (React frontend)
+- Origin: http://localhost:3000 (React frontend)
 - Credentials: true
 
 ## Veritabanı Sınıfı (ProcessFlowDatabase)
@@ -538,7 +538,7 @@ Süreç bağlantısını oluşturur.
 Sistem ilk çalıştırıldığında otomatik olarak oluşturulan veriler:
 
 ### Admin Kullanıcısı
-- Username: admin
+- Username: 
 - Password: admin123
 - Email: admin@processflow.com
 - Role: admin

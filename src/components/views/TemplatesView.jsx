@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Search, Plus, FileText, Copy, Download, Eye } from 'lucide-react'
+import { Search, Plus, FileText, Copy, Download, Eye, Star } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 export const TemplatesView = ({ onNavigate }) => {
@@ -68,13 +68,32 @@ export const TemplatesView = ({ onNavigate }) => {
   
   return (
     <div className="container mx-auto px-4 py-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Şablonlar</h1>
-        <p className="text-gray-600">Hazır süreç şablonlarını keşfedin ve projelerinizde kullanın</p>
+      {/* Page Header */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-3">Şablonlar</h1>
+            <p className="text-lg text-gray-600 max-w-2xl">Hazır süreç şablonlarını keşfedin ve projelerinizde kullanın. Hızlı başlangıç için önceden tasarlanmış süreç şablonları.</p>
+          </div>
+          <div className="hidden lg:flex items-center space-x-2">
+            <Button variant="outline" size="sm">
+              <Eye className="h-4 w-4 mr-2" />
+              Önizleme
+            </Button>
+          </div>
+        </div>
       </div>
       
-      {/* Search and Filter */}
-      <div className="mb-6 flex flex-col sm:flex-row gap-4">
+      {/* Search and Actions Section */}
+      <div className="bg-white rounded-lg border p-6 mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Şablon Arama</h2>
+          <Button className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Şablon Oluştur
+          </Button>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
@@ -84,15 +103,12 @@ export const TemplatesView = ({ onNavigate }) => {
             className="pl-10"
           />
         </div>
-        <Button className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Şablon Oluştur
-        </Button>
+        </div>
       </div>
       
-      {/* Categories */}
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold mb-3">Kategoriler</h2>
+      {/* Categories Section */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Kategoriler</h2>
         <div className="flex flex-wrap gap-2">
           {['Tümü', 'Satış', 'İK', 'Proje', 'Destek', 'Finans', 'Operasyon'].map((category) => (
             <Badge
@@ -106,8 +122,15 @@ export const TemplatesView = ({ onNavigate }) => {
         </div>
       </div>
       
-      {/* Templates Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Templates Section */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Mevcut Şablonlar</h2>
+          <div className="text-sm text-gray-600">
+            {filteredTemplates.length} şablon bulundu
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredTemplates.map((template) => (
           <Card key={template.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
@@ -133,7 +156,7 @@ export const TemplatesView = ({ onNavigate }) => {
                 {/* Stats */}
                 <div className="flex items-center justify-between text-sm text-gray-600">
                   <span>Kullanım: {template.usage}</span>
-                  <span>Puan: {template.rating} ⭐</span>
+                  <span className="flex items-center gap-1">Puan: {template.rating} <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" /></span>
                 </div>
                 
                 {/* Actions */}
@@ -164,6 +187,7 @@ export const TemplatesView = ({ onNavigate }) => {
             </CardContent>
           </Card>
         ))}
+        </div>
       </div>
       
       {filteredTemplates.length === 0 && (

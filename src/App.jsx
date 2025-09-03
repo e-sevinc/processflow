@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ProcessProvider } from '@/contexts/ProcessContext'
 import { Header } from '@/components/Header'
+import { Sidebar } from '@/components/Sidebar'
 import { WorkspaceManagement } from '@/components/workspace/WorkspaceManagement'
 import { ProcessManagement } from '@/components/process/ProcessManagement'
 import { ProcessEditor } from '@/components/editor/ProcessEditor'
@@ -12,6 +13,7 @@ import { TemplatesView } from '@/components/views/TemplatesView'
 import { AnalyticsView } from '@/components/views/AnalyticsView'
 import { SettingsView } from '@/components/views/SettingsView'
 import { ProfileView } from '@/components/views/ProfileView'
+import { ComponentVariantsDemo } from '@/components/demo/ComponentVariantsDemo'
 import '@/styles/globals.css'
 
 // Auth Wrapper Component
@@ -36,35 +38,6 @@ const MainContent = ({
   onBackToProcesses,
   onNavigate
 }) => {
-  // Breadcrumb items based on current view
-  const getBreadcrumbItems = () => {
-    const items = []
-    
-    if (currentView === 'workspaces') {
-      items.push({ label: 'Çalışma Alanları', path: 'workspaces' })
-    } else if (currentView === 'processes' && selectedWorkspace) {
-      items.push(
-        { label: 'Çalışma Alanları', path: 'workspaces' },
-        { label: selectedWorkspace.name, path: 'processes' }
-      )
-    } else if (currentView === 'editor' && selectedProcess) {
-      items.push(
-        { label: 'Çalışma Alanları', path: 'workspaces' },
-        { label: selectedWorkspace?.name || 'Workspace', path: 'processes' },
-        { label: selectedProcess.name, path: 'editor' }
-      )
-    } else if (currentView === 'templates') {
-      items.push({ label: 'Şablonlar', path: 'templates' })
-    } else if (currentView === 'analytics') {
-      items.push({ label: 'Analitik', path: 'analytics' })
-    } else if (currentView === 'settings') {
-      items.push({ label: 'Ayarlar', path: 'settings' })
-    } else if (currentView === 'profile') {
-      items.push({ label: 'Profil', path: 'profile' })
-    }
-    
-    return items
-  }
   
   if (currentView === 'workspaces') {
     return <WorkspaceManagement onSelectWorkspace={onSelectWorkspace} onNavigate={onNavigate} />
@@ -107,6 +80,10 @@ const MainContent = ({
     return <ProfileView onNavigate={onNavigate} />
   }
   
+  if (currentView === 'demo') {
+    return <ComponentVariantsDemo />
+  }
+  
   return <WorkspaceManagement onSelectWorkspace={onSelectWorkspace} onNavigate={onNavigate} />
 }
 
@@ -115,6 +92,8 @@ function App() {
   const [currentView, setCurrentView] = useState('workspaces')
   const [selectedWorkspace, setSelectedWorkspace] = useState(null)
   const [selectedProcess, setSelectedProcess] = useState(null)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   
   // Global click handler to close dropdowns
   useEffect(() => {
@@ -133,6 +112,34 @@ function App() {
       document.removeEventListener('click', handleGlobalClick)
     }
   }, [])
+
+  // Close mobile sidebar when view changes
+  useEffect(() => {
+    if (isMobileSidebarOpen) {
+      setIsMobileSidebarOpen(false)
+    }
+  }, [currentView])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Close mobile sidebar with Escape key
+      if (event.key === 'Escape' && isMobileSidebarOpen) {
+        setIsMobileSidebarOpen(false)
+      }
+      
+      // Toggle sidebar with Ctrl/Cmd + B
+      if ((event.ctrlKey || event.metaKey) && event.key === 'b') {
+        event.preventDefault()
+        handleToggleSidebar()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isMobileSidebarOpen])
   
   const handleSelectWorkspace = (workspace) => {
     setSelectedWorkspace(workspace)
@@ -166,6 +173,9 @@ function App() {
         if (selectedWorkspace) {
           setCurrentView('processes')
           setSelectedProcess(null)
+        } else {
+          // If no workspace selected, go to workspaces first
+          setCurrentView('workspaces')
         }
         break
       case 'templates':
@@ -180,9 +190,26 @@ function App() {
       case 'profile':
         setCurrentView('profile')
         break
+      case 'demo':
+        setCurrentView('demo')
+        break
       default:
+        console.warn(`Unknown view: ${view}`)
         break
     }
+  }
+  
+  const handleToggleSidebar = () => {
+    setIsSidebarCollapsed(!isSidebarCollapsed)
+  }
+  
+  const handleToggleMobileSidebar = () => {
+    setIsMobileSidebarOpen(!isMobileSidebarOpen)
+  }
+  
+  const handleNavigateWithMobile = (view) => {
+    handleNavigate(view)
+    setIsMobileSidebarOpen(false)
   }
   
   // Breadcrumb items based on current view
@@ -220,22 +247,59 @@ function App() {
       <AuthProvider>
         <ProcessProvider>
           <AuthWrapper>
-            <div className="min-h-screen bg-gray-50">
-              <Header 
-                currentView={currentView}
-                onNavigate={handleNavigate}
-                breadcrumbItems={getBreadcrumbItems()}
-              />
-              <MainContent 
-                currentView={currentView}
-                selectedWorkspace={selectedWorkspace}
-                selectedProcess={selectedProcess}
-                onSelectWorkspace={handleSelectWorkspace}
-                onSelectProcess={handleSelectProcess}
-                onBackToWorkspaces={handleBackToWorkspaces}
-                onBackToProcesses={handleBackToProcesses}
-                onNavigate={handleNavigate}
-              />
+            <div className="min-h-screen bg-gray-50 flex">
+              {/* Desktop Sidebar */}
+              <div className="hidden lg:block flex-shrink-0">
+                <Sidebar
+                  currentView={currentView}
+                  onNavigate={handleNavigate}
+                  selectedWorkspace={selectedWorkspace}
+                  selectedProcess={selectedProcess}
+                  isCollapsed={isSidebarCollapsed}
+                  onToggleCollapse={handleToggleSidebar}
+                />
+              </div>
+              
+              {/* Mobile Sidebar Overlay */}
+              {isMobileSidebarOpen && (
+                <div className="lg:hidden fixed inset-0 z-50 flex">
+                  <div 
+                    className="fixed inset-0 bg-black bg-opacity-50 transition-opacity duration-300" 
+                    onClick={handleToggleMobileSidebar}
+                  />
+                  <div className="relative flex-shrink-0 w-64 transform transition-transform duration-300">
+                    <Sidebar
+                      currentView={currentView}
+                      onNavigate={handleNavigateWithMobile}
+                      selectedWorkspace={selectedWorkspace}
+                      selectedProcess={selectedProcess}
+                      isCollapsed={false}
+                      onToggleCollapse={handleToggleMobileSidebar}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {/* Main Content Area */}
+              <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                <Header 
+                  onToggleSidebar={handleToggleSidebar}
+                  isSidebarCollapsed={isSidebarCollapsed}
+                  isMobileSidebarOpen={isMobileSidebarOpen}
+                />
+                <div className="flex-1 overflow-auto">
+                  <MainContent 
+                    currentView={currentView}
+                    selectedWorkspace={selectedWorkspace}
+                    selectedProcess={selectedProcess}
+                    onSelectWorkspace={handleSelectWorkspace}
+                    onSelectProcess={handleSelectProcess}
+                    onBackToWorkspaces={handleBackToWorkspaces}
+                    onBackToProcesses={handleBackToProcesses}
+                    onNavigate={handleNavigate}
+                  />
+                </div>
+              </div>
             </div>
             <Toaster 
               position="top-right"

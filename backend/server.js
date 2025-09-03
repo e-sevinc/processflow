@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const ProcessFlowDatabase = require('./database');
+const ProcessFlowDatabasePrisma = require('./database-prisma');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -10,14 +10,17 @@ const JWT_SECRET = process.env.JWT_SECRET || 'processflow-secret-key-2024';
 
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176'], // React frontend URLs
+    origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176'], // React frontend URLs
     credentials: true
 }));
 app.use(express.json());
 
 // Database instance
-const db = new ProcessFlowDatabase();
-db.init();
+const db = new ProcessFlowDatabasePrisma();
+db.init().catch(err => {
+    console.error('Database initialization failed:', err);
+    process.exit(1);
+});
 
 // JWT Authentication Middleware
 const authenticateToken = (req, res, next) => {
@@ -54,13 +57,13 @@ app.post('/api/auth/register', async (req, res) => {
         }
 
         // Kullanıcı var mı kontrol et
-        const existingUser = db.getUserByUsername(username);
+        const existingUser = await db.getUserByUsername(username);
         if (existingUser) {
             return res.status(400).json({ error: 'Kullanıcı adı zaten kullanılıyor' });
         }
 
         // Yeni kullanıcı oluştur
-        const newUser = db.createUser(username, email, password, fullName);
+        const newUser = await db.createUser(username, email, password, fullName);
 
         // JWT token oluştur
         const token = jwt.sign(
@@ -94,7 +97,7 @@ app.post('/api/auth/login', async (req, res) => {
         }
 
         // Kullanıcıyı bul
-        const user = db.getUserByUsername(username);
+        const user = await db.getUserByUsername(username);
         if (!user) {
             return res.status(401).json({ error: 'Geçersiz kullanıcı adı veya şifre' });
         }
@@ -129,9 +132,9 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // User routes
-app.get('/api/user/profile', authenticateToken, (req, res) => {
+app.get('/api/user/profile', authenticateToken, async (req, res) => {
     try {
-        const user = db.getUserById(req.user.id);
+        const user = await db.getUserById(req.user.id);
         if (!user) {
             return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
         }
@@ -143,9 +146,9 @@ app.get('/api/user/profile', authenticateToken, (req, res) => {
 });
 
 // Workspace routes
-app.get('/api/workspaces', authenticateToken, (req, res) => {
+app.get('/api/workspaces', authenticateToken, async (req, res) => {
     try {
-        const workspaces = db.getWorkspacesByUser(req.user.id);
+        const workspaces = await db.getWorkspacesByUser(req.user.id);
         res.json({ workspaces });
     } catch (error) {
         console.error('Get workspaces error:', error);
@@ -153,7 +156,7 @@ app.get('/api/workspaces', authenticateToken, (req, res) => {
     }
 });
 
-app.post('/api/workspaces', authenticateToken, (req, res) => {
+app.post('/api/workspaces', authenticateToken, async (req, res) => {
     try {
         const { name, description, isPublic } = req.body;
 
@@ -161,7 +164,7 @@ app.post('/api/workspaces', authenticateToken, (req, res) => {
             return res.status(400).json({ error: 'Workspace adı gerekli' });
         }
 
-        const workspace = db.createWorkspace(name, description, req.user.id, isPublic);
+        const workspace = await db.createWorkspace(name, description, req.user.id, isPublic);
         res.status(201).json({
             message: 'Workspace başarıyla oluşturuldu',
             workspace
@@ -172,9 +175,9 @@ app.post('/api/workspaces', authenticateToken, (req, res) => {
     }
 });
 
-app.get('/api/workspaces/:id', authenticateToken, (req, res) => {
+app.get('/api/workspaces/:id', authenticateToken, async (req, res) => {
     try {
-        const workspace = db.getWorkspaceById(parseInt(req.params.id), req.user.id);
+        const workspace = await db.getWorkspaceById(parseInt(req.params.id), req.user.id);
         if (!workspace) {
             return res.status(404).json({ error: 'Workspace bulunamadı' });
         }
@@ -186,17 +189,17 @@ app.get('/api/workspaces/:id', authenticateToken, (req, res) => {
 });
 
 // Process routes
-app.get('/api/workspaces/:workspaceId/processes', authenticateToken, (req, res) => {
+app.get('/api/workspaces/:workspaceId/processes', authenticateToken, async (req, res) => {
     try {
         const workspaceId = parseInt(req.params.workspaceId);
         
         // Workspace'e erişim kontrolü
-        const workspace = db.getWorkspaceById(workspaceId, req.user.id);
+        const workspace = await db.getWorkspaceById(workspaceId, req.user.id);
         if (!workspace) {
             return res.status(404).json({ error: 'Workspace bulunamadı' });
         }
 
-        const processes = db.getProcessesByWorkspace(workspaceId);
+        const processes = await db.getProcessesByWorkspace(workspaceId);
         res.json({ processes });
     } catch (error) {
         console.error('Get processes error:', error);
@@ -204,7 +207,7 @@ app.get('/api/workspaces/:workspaceId/processes', authenticateToken, (req, res) 
     }
 });
 
-app.post('/api/workspaces/:workspaceId/processes', authenticateToken, (req, res) => {
+app.post('/api/workspaces/:workspaceId/processes', authenticateToken, async (req, res) => {
     try {
         const workspaceId = parseInt(req.params.workspaceId);
         const { name, description } = req.body;
@@ -214,12 +217,12 @@ app.post('/api/workspaces/:workspaceId/processes', authenticateToken, (req, res)
         }
 
         // Workspace'e erişim kontrolü
-        const workspace = db.getWorkspaceById(workspaceId, req.user.id);
+        const workspace = await db.getWorkspaceById(workspaceId, req.user.id);
         if (!workspace) {
             return res.status(404).json({ error: 'Workspace bulunamadı' });
         }
 
-        const process = db.createProcess(name, description, workspaceId, req.user.id);
+        const process = await db.createProcess(name, description, workspaceId, req.user.id);
         res.status(201).json({
             message: 'Süreç başarıyla oluşturuldu',
             process
@@ -230,24 +233,24 @@ app.post('/api/workspaces/:workspaceId/processes', authenticateToken, (req, res)
     }
 });
 
-app.get('/api/processes/:id', authenticateToken, (req, res) => {
+app.get('/api/processes/:id', authenticateToken, async (req, res) => {
     try {
         const processId = parseInt(req.params.id);
-        const process = db.getProcessById(processId);
+        const process = await db.getProcessById(processId);
         
         if (!process) {
             return res.status(404).json({ error: 'Süreç bulunamadı' });
         }
 
         // Workspace'e erişim kontrolü
-        const workspace = db.getWorkspaceById(process.workspace_id, req.user.id);
+        const workspace = await db.getWorkspaceById(process.workspace_id, req.user.id);
         if (!workspace) {
             return res.status(403).json({ error: 'Bu sürece erişim izniniz yok' });
         }
 
         // Süreç elementleri ve bağlantıları
-        const elements = db.getProcessElements(processId);
-        const connections = db.getProcessConnections(processId);
+        const elements = await db.getProcessElements(processId);
+        const connections = await db.getProcessConnections(processId);
 
         res.json({
             process,
@@ -261,7 +264,7 @@ app.get('/api/processes/:id', authenticateToken, (req, res) => {
 });
 
 // Process elements routes
-app.post('/api/processes/:processId/elements', authenticateToken, (req, res) => {
+app.post('/api/processes/:processId/elements', authenticateToken, async (req, res) => {
     try {
         const processId = parseInt(req.params.processId);
         const { elementType, label, xPosition, yPosition, properties } = req.body;
@@ -271,18 +274,18 @@ app.post('/api/processes/:processId/elements', authenticateToken, (req, res) => 
         }
 
         // Süreç kontrolü
-        const process = db.getProcessById(processId);
+        const process = await db.getProcessById(processId);
         if (!process) {
             return res.status(404).json({ error: 'Süreç bulunamadı' });
         }
 
         // Workspace'e erişim kontrolü
-        const workspace = db.getWorkspaceById(process.workspace_id, req.user.id);
+        const workspace = await db.getWorkspaceById(process.workspace_id, req.user.id);
         if (!workspace) {
             return res.status(403).json({ error: 'Bu sürece erişim izniniz yok' });
         }
 
-        const element = db.createProcessElement(processId, elementType, label, xPosition, yPosition, properties);
+        const element = await db.createProcessElement(processId, elementType, label, xPosition, yPosition, properties);
         res.status(201).json({
             message: 'Element başarıyla oluşturuldu',
             element
@@ -294,7 +297,7 @@ app.post('/api/processes/:processId/elements', authenticateToken, (req, res) => 
 });
 
 // Process connections routes
-app.post('/api/processes/:processId/connections', authenticateToken, (req, res) => {
+app.post('/api/processes/:processId/connections', authenticateToken, async (req, res) => {
     try {
         const processId = parseInt(req.params.processId);
         const { sourceElementId, targetElementId, label, properties } = req.body;
@@ -304,18 +307,18 @@ app.post('/api/processes/:processId/connections', authenticateToken, (req, res) 
         }
 
         // Süreç kontrolü
-        const process = db.getProcessById(processId);
+        const process = await db.getProcessById(processId);
         if (!process) {
             return res.status(404).json({ error: 'Süreç bulunamadı' });
         }
 
         // Workspace'e erişim kontrolü
-        const workspace = db.getWorkspaceById(process.workspace_id, req.user.id);
+        const workspace = await db.getWorkspaceById(process.workspace_id, req.user.id);
         if (!workspace) {
             return res.status(403).json({ error: 'Bu sürece erişim izniniz yok' });
         }
 
-        const connection = db.createProcessConnection(processId, sourceElementId, targetElementId, label, properties);
+        const connection = await db.createProcessConnection(processId, sourceElementId, targetElementId, label, properties);
         res.status(201).json({
             message: 'Bağlantı başarıyla oluşturuldu',
             connection
@@ -327,26 +330,26 @@ app.post('/api/processes/:processId/connections', authenticateToken, (req, res) 
 });
 
 // Process elements - Update
-app.put('/api/processes/:processId/elements/:elementId', authenticateToken, (req, res) => {
+app.put('/api/processes/:processId/elements/:elementId', authenticateToken, async (req, res) => {
     try {
         const processId = parseInt(req.params.processId);
         const elementId = parseInt(req.params.elementId);
         const { label, xPosition, yPosition, properties } = req.body;
 
         // Süreç kontrolü
-        const process = db.getProcessById(processId);
+        const process = await db.getProcessById(processId);
         if (!process) {
             return res.status(404).json({ error: 'Süreç bulunamadı' });
         }
 
         // Workspace'e erişim kontrolü
-        const workspace = db.getWorkspaceById(process.workspace_id, req.user.id);
+        const workspace = await db.getWorkspaceById(process.workspace_id, req.user.id);
         if (!workspace) {
             return res.status(403).json({ error: 'Bu sürece erişim izniniz yok' });
         }
 
         // Element güncelleme işlemi
-        const updatedElement = db.updateProcessElement(processId, elementId, {
+        const updatedElement = await db.updateProcessElement(processId, elementId, {
             label, xPosition, yPosition, properties
         });
         
@@ -361,25 +364,25 @@ app.put('/api/processes/:processId/elements/:elementId', authenticateToken, (req
 });
 
 // Process elements - Delete
-app.delete('/api/processes/:processId/elements/:elementId', authenticateToken, (req, res) => {
+app.delete('/api/processes/:processId/elements/:elementId', authenticateToken, async (req, res) => {
     try {
         const processId = parseInt(req.params.processId);
         const elementId = parseInt(req.params.elementId);
 
         // Süreç kontrolü
-        const process = db.getProcessById(processId);
+        const process = await db.getProcessById(processId);
         if (!process) {
             return res.status(404).json({ error: 'Süreç bulunamadı' });
         }
 
         // Workspace'e erişim kontrolü
-        const workspace = db.getWorkspaceById(process.workspace_id, req.user.id);
+        const workspace = await db.getWorkspaceById(process.workspace_id, req.user.id);
         if (!workspace) {
             return res.status(403).json({ error: 'Bu sürece erişim izniniz yok' });
         }
 
         // Element silme işlemi
-        db.deleteProcessElement(processId, elementId);
+        await db.deleteProcessElement(processId, elementId);
         
         res.json({ message: 'Element başarıyla silindi' });
     } catch (error) {
@@ -389,25 +392,25 @@ app.delete('/api/processes/:processId/elements/:elementId', authenticateToken, (
 });
 
 // Process connections - Delete
-app.delete('/api/processes/:processId/connections/:connectionId', authenticateToken, (req, res) => {
+app.delete('/api/processes/:processId/connections/:connectionId', authenticateToken, async (req, res) => {
     try {
         const processId = parseInt(req.params.processId);
         const connectionId = parseInt(req.params.connectionId);
 
         // Süreç kontrolü
-        const process = db.getProcessById(processId);
+        const process = await db.getProcessById(processId);
         if (!process) {
             return res.status(404).json({ error: 'Süreç bulunamadı' });
         }
 
         // Workspace'e erişim kontrolü
-        const workspace = db.getWorkspaceById(process.workspace_id, req.user.id);
+        const workspace = await db.getWorkspaceById(process.workspace_id, req.user.id);
         if (!workspace) {
             return res.status(403).json({ error: 'Bu sürece erişim izniniz yok' });
         }
 
         // Bağlantı silme işlemi
-        db.deleteProcessConnection(processId, connectionId);
+        await db.deleteProcessConnection(processId, connectionId);
         
         res.json({ message: 'Bağlantı başarıyla silindi' });
     } catch (error) {

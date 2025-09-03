@@ -125,8 +125,14 @@ export const AuthForm = () => {
                   />
                 </div>
               )}
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'İşleniyor...' : (isLogin ? t('login') : t('register'))}
+              <Button 
+                type="submit" 
+                className="w-full" 
+                loading={loading}
+                loadingText="İşleniyor..."
+                disabled={loading}
+              >
+                {isLogin ? t('login') : t('register')}
               </Button>
               
               {error && (

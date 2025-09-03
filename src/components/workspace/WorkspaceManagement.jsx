@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
-import { Building2, Plus, Edit, Trash2, MoreHorizontal, ArrowLeft, Home } from 'lucide-react'
+import { Building2, Plus, Edit, Trash2, MoreHorizontal } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useAuth } from '@/contexts/AuthContext'
 import apiService from '@/services/api'
@@ -63,42 +63,6 @@ export const WorkspaceManagement = ({ onSelectWorkspace, onNavigate }) => {
   
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation Bar */}
-      <div className="bg-white border-b px-4 py-3">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onNavigate('home')}
-              className="flex items-center space-x-2"
-            >
-              <Home className="h-4 w-4" />
-              <span>Ana Sayfa</span>
-            </Button>
-            <div className="text-sm text-muted-foreground">/</div>
-            <span className="font-medium">{t('myWorkspaces')}</span>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onNavigate('templates')}
-            >
-              Şablonlar
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onNavigate('analytics')}
-            >
-              Analitik
-            </Button>
-          </div>
-        </div>
-      </div>
-      
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">

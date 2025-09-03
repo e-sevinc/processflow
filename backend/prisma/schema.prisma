@@ -1,0 +1,115 @@
+// ProcessFlow Prisma Schema
+// Based on existing SQLite database structure
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./processflow.db"
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  fullName     String?  @map("full_name")
+  role         String   @default("user")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  ownedWorkspaces     Workspace[]        @relation("WorkspaceOwner")
+  workspaceMemberships WorkspaceMember[]
+  createdProcesses    Process[]          @relation("ProcessCreator")
+
+  @@map("users")
+}
+
+model Workspace {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  ownerId     Int      @map("owner_id")
+  isPublic    Boolean  @default(false) @map("is_public")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  owner   User              @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+  members WorkspaceMember[]
+  processes Process[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          Int      @id @default(autoincrement())
+  workspaceId Int      @map("workspace_id")
+  userId      Int      @map("user_id")
+  role        String   @default("member")
+  joinedAt    DateTime @default(now()) @map("joined_at")
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@unique([workspaceId, userId])
+  @@map("workspace_members")
+}
+
+model Process {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  workspaceId Int      @map("workspace_id")
+  createdBy   Int      @map("created_by")
+  status      String   @default("draft")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  workspace   Workspace         @relation(fields: [workspaceId], references: [id])
+  creator     User              @relation("ProcessCreator", fields: [createdBy], references: [id])
+  elements    ProcessElement[]
+  connections ProcessConnection[]
+
+  @@map("processes")
+}
+
+model ProcessElement {
+  id          Int      @id @default(autoincrement())
+  processId   Int      @map("process_id")
+  elementType String   @map("element_type")
+  label       String
+  xPosition   Float    @map("x_position")
+  yPosition   Float    @map("y_position")
+  properties  String?  // JSON string
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  process           Process            @relation(fields: [processId], references: [id])
+  sourceConnections ProcessConnection[] @relation("SourceElement")
+  targetConnections ProcessConnection[] @relation("TargetElement")
+
+  @@map("process_elements")
+}
+
+model ProcessConnection {
+  id              Int      @id @default(autoincrement())
+  processId       Int      @map("process_id")
+  sourceElementId Int      @map("source_element_id")
+  targetElementId Int      @map("target_element_id")
+  label           String?
+  properties      String?  // JSON string
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  process       Process        @relation(fields: [processId], references: [id])
+  sourceElement ProcessElement @relation("SourceElement", fields: [sourceElementId], references: [id])
+  targetElement ProcessElement @relation("TargetElement", fields: [targetElementId], references: [id])
+
+  @@map("process_connections")
+}

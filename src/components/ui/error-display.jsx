@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertTriangle, X, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react'
+import { AlertTriangle, X, ChevronDown, ChevronUp, RefreshCw, Lock, Wrench, Globe, AlertCircle } from 'lucide-react'
 import { Button } from './button'
 import { Badge } from './badge'
 
@@ -24,13 +24,13 @@ export const ErrorDisplay = ({ errors, onClearAll, onClearError, onRetry }) => {
 
   const getErrorIcon = (error) => {
     if (error.originalError?.response?.status === 401) {
-      return '🔐'
+      return <Lock className="w-4 h-4" />
     } else if (error.originalError?.response?.status >= 500) {
-      return '🔧'
+      return <Wrench className="w-4 h-4" />
     } else if (error.originalError?.request) {
-      return '🌐'
+      return <Globe className="w-4 h-4" />
     }
-    return '⚠️'
+    return <AlertCircle className="w-4 h-4" />
   }
 
   return (
@@ -91,7 +91,7 @@ export const ErrorDisplay = ({ errors, onClearAll, onClearError, onRetry }) => {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-1">
-                      <span className="text-sm">{getErrorIcon(error)}</span>
+                      {getErrorIcon(error)}
                       <span className="text-sm font-medium text-red-900">
                         {error.message}
                       </span>
@@ -128,7 +128,7 @@ export const ErrorDisplay = ({ errors, onClearAll, onClearError, onRetry }) => {
             <div className="space-y-2">
               {recentErrors.map((error) => (
                 <div key={error.id} className="flex items-center space-x-2">
-                  <span className="text-sm">{getErrorIcon(error)}</span>
+                  {getErrorIcon(error)}
                   <span className="text-sm text-red-900 truncate flex-1">
                     {error.message}
                   </span>

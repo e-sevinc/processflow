@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start:dev": "./start-dev.sh",
+    "start:dev:simple": "./start-dev-simple.sh",
+    "stop:dev": "./stop-dev.sh",
+    "start:dev:win": "start-dev.bat"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.0",

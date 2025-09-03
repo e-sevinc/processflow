@@ -4,11 +4,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { SimpleSelect, SelectOption } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
 
-import { FileText, Plus, Edit, Trash2, Download, Share2, MoreHorizontal, ArrowLeft, Home, Building2 } from 'lucide-react'
+import { FileText, Plus, Edit, Trash2, Download, Share2, MoreHorizontal } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useAuth } from '@/contexts/AuthContext'
 import apiService from '@/services/api'
@@ -82,54 +83,6 @@ export const ProcessManagement = ({ workspace, onSelectProcess, onNavigate, onBa
   
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation Bar */}
-      <div className="bg-white border-b px-4 py-3">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onNavigate('home')}
-              className="flex items-center space-x-2"
-            >
-              <Home className="h-4 w-4" />
-              <span>Ana Sayfa</span>
-            </Button>
-            <div className="text-sm text-muted-foreground">/</div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onBack}
-              className="flex items-center space-x-2"
-            >
-              <Building2 className="h-4 w-4" />
-              <span>{t('myWorkspaces')}</span>
-            </Button>
-            <div className="text-sm text-muted-foreground">/</div>
-            <span className="font-medium">{workspace.name}</span>
-            <div className="text-sm text-muted-foreground">/</div>
-            <span className="font-medium">{t('processes')}</span>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onNavigate('templates')}
-            >
-              Şablonlar
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onNavigate('analytics')}
-            >
-              Analitik
-            </Button>
-          </div>
-        </div>
-      </div>
-      
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
@@ -298,16 +251,15 @@ export const ProcessManagement = ({ workspace, onSelectProcess, onNavigate, onBa
               </div>
               <div>
                 <Label htmlFor="status">{t('status')}</Label>
-                <select
+                <SimpleSelect
                   id="status"
                   value={newProcess.status}
                   onChange={(e) => setNewProcess({...newProcess, status: e.target.value})}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <option value="draft">Taslak</option>
-                  <option value="inReview">İncelemede</option>
-                  <option value="active">Aktif</option>
-                </select>
+                  <SelectOption value="draft">Taslak</SelectOption>
+                  <SelectOption value="inReview">İncelemede</SelectOption>
+                  <SelectOption value="active">Aktif</SelectOption>
+                </SimpleSelect>
               </div>
             </div>
             <div>

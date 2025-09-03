@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Select } from '@/components/ui/select'
+import { SimpleSelect } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { EnhancedDropdownMenu } from '@/components/ui/dropdown-menu'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -486,8 +486,13 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
               align="end"
             />
             
-            <Button onClick={saveProcess} disabled={saving}>
-              {saving ? 'Kaydediliyor...' : 'Kaydet'}
+            <Button 
+              onClick={saveProcess} 
+              loading={saving}
+              loadingText="Kaydediliyor..."
+              disabled={saving}
+            >
+              Kaydet
             </Button>
           </div>
         </div>
@@ -802,7 +807,7 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
           <div className="grid gap-4 py-4">
             <div>
               <Label htmlFor="elementType">Tip</Label>
-              <Select
+              <SimpleSelect
                 id="elementType"
                 value={newElement.type}
                 onChange={(e) => setNewElement({...newElement, type: e.target.value})}
@@ -811,7 +816,7 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
                 <option value="step">Adım</option>
                 <option value="decision">Karar</option>
                 <option value="end">Bitiş</option>
-              </Select>
+              </SimpleSelect>
             </div>
             <div>
               <Label htmlFor="elementName">Ad</Label>
@@ -850,7 +855,7 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
           <div className="grid gap-4 py-4">
             <div>
               <Label htmlFor="connectionFrom">Kaynak Element</Label>
-              <Select
+              <SimpleSelect
                 id="connectionFrom"
                 value={newConnection.from}
                 onChange={(e) => setNewConnection({...newConnection, from: e.target.value})}
@@ -859,11 +864,11 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
                 {elements.map(element => (
                   <option key={element.id} value={element.id}>{element.name}</option>
                 ))}
-              </Select>
+              </SimpleSelect>
             </div>
             <div>
               <Label htmlFor="connectionTo">Hedef Element</Label>
-              <Select
+              <SimpleSelect
                 id="connectionTo"
                 value={newConnection.to}
                 onChange={(e) => setNewConnection({...newConnection, to: e.target.value})}
@@ -872,7 +877,7 @@ export const ProcessEditor = ({ process, onBack, onNavigate }) => {
                 {elements.map(element => (
                   <option key={element.id} value={element.id}>{element.name}</option>
                 ))}
-              </Select>
+              </SimpleSelect>
             </div>
             <div>
               <Label htmlFor="connectionLabel">Etiket (Opsiyonel)</Label>
